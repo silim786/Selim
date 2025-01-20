@@ -1,0 +1,96 @@
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// Game settings
+const GRAVITY = 0.6;
+const FLAP_STRENGTH = -10;
+const PIPE_WIDTH = 60;
+const PIPE_GAP = 200;
+const PIPE_SPACING = 300;
+const BIRD_SIZE = 20;
+
+// Set canvas size
+canvas.width = 320;
+canvas.height = 480;
+
+// Bird object
+const bird = {
+  x: 50,
+  y: canvas.height / 2,
+  width: BIRD_SIZE,
+  height: BIRD_SIZE,
+  velocity: 0,
+};
+
+// Pipe array
+let pipes = [];
+let score = 0;
+let gameOver = false;
+
+// Handle bird flap
+document.addEventListener('keydown', (e) => {
+  if (e.key === ' ') {
+    bird.velocity = FLAP_STRENGTH;
+  }
+});
+
+// Generate pipes at a regular interval
+function generatePipe() {
+  const gapStart = Math.floor(Math.random() * (canvas.height - PIPE_GAP));
+  const pipe = {
+    x: canvas.width,
+    gapStart: gapStart,
+    width: PIPE_WIDTH,
+  };
+  pipes.push(pipe);
+}
+
+// Update game logic
+function updateGame() {
+  if (gameOver) return;
+
+  // Update bird position
+  bird.velocity += GRAVITY;
+  bird.y += bird.velocity;
+
+  // Check for bird hitting the ground or ceiling
+  if (bird.y + bird.height > canvas.height || bird.y < 0) {
+    gameOver = true;
+  }
+
+  // Update pipes
+  for (let i = pipes.length - 1; i >= 0; i--) {
+    pipes[i].x -= 2; // Move pipes to the left
+
+    // Check for collision with pipes
+    if (
+      bird.x + bird.width > pipes[i].x &&
+      bird.x < pipes[i].x + pipes[i].width &&
+      (bird.y < pipes[i].gapStart || bird.y + bird.height > pipes[i].gapStart + PIPE_GAP)
+    ) {
+      gameOver = true;
+    }
+
+    // Remove pipes that are off-screen
+    if (pipes[i].x + pipes[i].width < 0) {
+      pipes.splice(i, 1);
+      score++;
+    }
+  }
+
+  // Generate new pipes every few frames
+  if (Math.random() < 0.02) {
+    generatePipe();
+  }
+
+  // Clear canvas and redraw everything
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Draw pipes
+  pipes.forEach((pipe) => {
+    ctx.fillStyle = 'green';
+    ctx.fillRect(pipe.x, 0, pipe.width, pipe.gapStart); // Top pipe
+    ctx.fillRect(pipe.x, pipe.gapStart + PIPE_GAP, pipe.width, canvas.height); // Bottom pipe
+  });
+
+  // Draw bird
